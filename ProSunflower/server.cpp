@@ -7,34 +7,66 @@ using namespace std;
 SunTCPServer server;
 SunTCPServer turner;
 bool IsFlower = false;
-PINFO flower;
+PINFO flower = 0;
 vector<PINFO> ClientCount;
 vector<PINFO> TurnerCount;
 
 void server_accept(PINFO info) {
-	server.Send(flower, "A");
-	ClientCount.push_back(info);
+	if (flower != 0) {
+		server.Send(flower, EncodeLenAStr("CON", 16).c_str());
+		ClientCount.push_back(info);
+	}
+	else {
+		cout << "No Flower,everything will fail." << endl;
+	}
 }
 void server_recv(PINFO info) {
-	for (size_t i = 0; i < ClientCount.size(); i++)
+	bool isError = false;
+	while (true)
 	{
-		if (ClientCount[i] == info) {
-			char* data = server.GetData(info);
-			Log_DEBUG("log.log", ("Client-Server:" + EncodeLenAStr(data, 16)).c_str());
-			server.Send(TurnerCount[i], EncodeLenAStr(data, 16).c_str());
+		if (ClientCount.size() == TurnerCount.size()) {
+			for (size_t i = 0; i < ClientCount.size(); i++)
+			{
+				if (ClientCount[i] == info) {
+					char* data = server.GetData(info);
+					auto result = EncodeLenAStr(data, 16);
+					Log_DEBUG("log.log", ("Client-Server:" + result).c_str());
+					server.Send(TurnerCount[i], result.c_str());
+					break;
+				}
+			}
+			if (isError == true) {
+				cout << "GOOD:Line 39,Repaired" << endl;
+			}
 			break;
+		}
+		else {
+			cout << "WARN:Line 39,Client!=Turner" << endl;
 		}
 	}
 }
 void server_left(PINFO info) {
-	for (size_t i = 0; i < ClientCount.size(); i++)
+	bool isError = false;
+	while (true)
 	{
-		if (ClientCount[i] == info) {
-			server.Close(info);
-			ClientCount[i] = 0;
-			turner.Close(TurnerCount[i]);
-			TurnerCount[i] = 0;
+		if (ClientCount.size() == TurnerCount.size()) {
+			for (size_t i = 0; i < ClientCount.size(); i++)
+			{
+				if (ClientCount[i] == info) {
+					server.Close(info);
+					ClientCount[i] = 0;
+					turner.Close(TurnerCount[i]);
+					TurnerCount[i] = 0;
+					break;
+				}
+			}
+			if (isError == true) {
+				cout << "GOOD:Line 60,Repaired" << endl;
+			}
 			break;
+		}
+		else {
+			cout << "WARN:Line 60,Client!=Turner" << endl;
 		}
 	}
 }
@@ -49,31 +81,56 @@ void turner_accept(PINFO info) {
 	}
 }
 void turner_recv(PINFO info) {
-	for (size_t i = 0; i < TurnerCount.size(); i++)
+	bool isError = false;
+	while (true)
 	{
-		if (TurnerCount[i] == info) {
-			auto data = DecodeLenAStr(turner.GetData(info), 16);
-			for (auto k : data) {
-				Log_DEBUG("log.log", ("Turner-Client:" + k).c_str());
-				server.Send(ClientCount[i], k.c_str());
+		if (ClientCount.size() == TurnerCount.size()) {
+			for (size_t i = 0; i < TurnerCount.size(); i++)
+			{
+				if (TurnerCount[i] == info) {
+					auto data = DecodeLenAStr(turner.GetData(info), 16);
+					for (auto k : data) {
+						Log_DEBUG("log.log", ("Turner-Client:" + k).c_str());
+						server.Send(ClientCount[i], k.c_str());
+					}
+				}
 			}
+			if (isError == true) {
+				cout << "GOOD:Line 91,Repaired" << endl;
+			}
+			break;
+		}
+		else {
+			cout << "WARN:Line 91,Client!=Turner" << endl;
 		}
 	}
 }
 void turner_left(PINFO info) {
-	if (info == flower) {
-		turner.Close(info);
-		exit(0);
-	}
-	else {
-		for (size_t i = 0; i < TurnerCount.size(); i++)
-		{
-			if (TurnerCount[i] == info) {
+	bool isError = false;
+	while (true) {
+		if (ClientCount.size() == TurnerCount.size()) {
+			if (info == flower) {
 				turner.Close(info);
-				TurnerCount[i] = 0;
-				server.Close(ClientCount[i]);
-				ClientCount[i] = 0;
+				exit(0);
 			}
+			else {
+				for (size_t i = 0; i < TurnerCount.size(); i++)
+				{
+					if (TurnerCount[i] == info) {
+						turner.Close(info);
+						TurnerCount[i] = 0;
+						server.Close(ClientCount[i]);
+						ClientCount[i] = 0;
+					}
+				}
+			}
+			if (isError == true) {
+				cout << "GOOD:Line 116,Repaired" << endl;
+			}
+			break;
+		}
+		else {
+			cout << "WARN:Line 116,Client!=Turner" << endl;
 		}
 	}
 	cout << "A Turner Client left" << endl;

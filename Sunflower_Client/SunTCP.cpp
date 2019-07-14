@@ -133,18 +133,18 @@ void SunTCPServer::Close(int sock)
 
 void SunTCPServer::Send(PINFO info, const char* data)
 {
-		PPER_IO_CONTEXT perio = new PER_IO_CONTEXT;
-		perio->mSock = info->mSock;
-		memset(&perio->mOverlapped, 0, sizeof(OVERLAPPED));
-		size_t len = strlen(data);
-		char* all = new char[len + 1]{ 0 };
-		strcpy_s(all, len + 1, data);
-		perio->mWsabuf.buf = all;
-		perio->mWsabuf.len = len;
-		perio->mOperator = 1;
-		DWORD sent = 0;
-		Log_WARN("operator_Log.log", "Send(PINFO info, const char* data)");
-		WSASend(perio->mSock, &perio->mWsabuf, 1, &sent, 0, (LPWSAOVERLAPPED)& perio->mOverlapped, 0);
+
+	PPER_IO_CONTEXT perio = new PER_IO_CONTEXT;
+	perio->mSock = info->mSock;
+	memset(&perio->mOverlapped, 0, sizeof(OVERLAPPED));
+	size_t len = strlen(data);
+	char* all = new char[len + 1]{ 0 };
+	strcpy_s(all, len + 1, data);
+	perio->mWsabuf.buf = all;
+	perio->mWsabuf.len = len;
+	perio->mOperator = 1;
+	DWORD sent = 0;
+	WSASend(perio->mSock, &perio->mWsabuf, 1, &sent, 0, (LPWSAOVERLAPPED)& perio->mOverlapped, 0);
 }
 
 void SunTCPServer::Send(SOCKET sock, const char* data)
@@ -169,30 +169,23 @@ void SunTCPServer::Worker()
 		DWORD mTreansferred = 0;
 		PPER_IO_CONTEXT perio;
 		GetQueuedCompletionStatus(this->com, &mTreansferred, (PULONG_PTR)& perio, (LPOVERLAPPED*)& perio, INFINITE);
-		perio = (PPER_IO_CONTEXT)CONTAINING_RECORD(perio, PER_IO_CONTEXT, mOverlapped);
+		//perio = (PPER_IO_CONTEXT)CONTAINING_RECORD(perio, PER_IO_CONTEXT, mOverlapped);
 		if (mTreansferred == 0)
 		{
-			Log_WARN("operator_Log.log", "Client left");
 			callLeft(perio);
 			delete perio;
 			perio = 0;
 		}
 		else if (perio->mOperator == 1)
 		{
-			Log_WARN("operator_Log.log", "Client Send");
-			delete[]perio->mWsabuf.buf;
+			delete[] perio->mWsabuf.buf;
 			delete perio;
 			perio = 0;
 		}
 		else if (perio->mOperator == 0)
 		{
-			Log_WARN("operator_Log.log", "Client Recv");
-			//perio->mWsabuf.len = mTreansferred;
 			callReceive(perio);
 			memset(perio->mBuffer, 0, sizeof(perio->mBuffer));
-			//perio->mWsabuf.len = sizeof(perio->mBuffer);
-			//This shows the size of buffer,if it's equal to 0, you will get nothing.
-
 			DWORD BytesRecvd = 0;
 			DWORD Flag = 0;
 			//perio->mBuffer[mTreansferred] = 0;

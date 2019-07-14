@@ -17,30 +17,33 @@ void client_accept(PINFO info) {
 
 }
 void client_recv(PINFO info) {
-	char* data = client.GetData(info);
-	if (strcmp(data, "A") == 0) {
-		short mserver_port = local.Connect("127.0.0.1", turner_port, gThread);
-		gServerSocks.push_back(mserver_port);
-		if (mserver_port > 0) {
-			cout << "Local:Connect Server Successfully" << endl;
+	auto data = DecodeLenAStr(client.GetData(info), 16);
+	for (auto i : data)
+	{
+		if (i == "CON") {
+			short mserver_port = local.Connect("127.0.0.1", turner_port, gThread);
+			gServerSocks.push_back(mserver_port);
+			if (mserver_port > 0) {
+				cout << "Local:Connect Server Successfully" << endl;
+			}
+			else {
+				perror("Local:Connect Server");
+				exit(0);
+			}
+			short mlocal_port = local.Connect("127.0.0.1", local_port, 0);
+			gLocalSocks.push_back(mlocal_port);
+			if (mlocal_port > 0) {
+				cout << "Local:Connect Local Successfully" << endl;
+			}
+			else {
+				perror("Local:Connect Local");
+				exit(0);
+			}
+			gThread = 0;
 		}
 		else {
-			perror("Local:Connect Server");
-			exit(0);
+			cout << "Unexpected! Server send to flower in a uncommon way." << endl;
 		}
-		short mlocal_port = local.Connect("127.0.0.1", local_port, 0);
-		gLocalSocks.push_back(mlocal_port);
-		if (mlocal_port > 0) {
-			cout << "Local:Connect Local Successfully" << endl;
-		}
-		else {
-			perror("Local:Connect Local");
-			exit(0);
-		}
-		gThread = 0;
-	}
-	else {
-		cout << "Unexpected! Server send to flower in a uncommon way." << endl;
 	}
 }
 void client_left(PINFO info) {
@@ -51,41 +54,68 @@ void local_accept(PINFO info) {
 
 }
 void local_recv(PINFO info) {
-	for (size_t i = 0; i < gServerSocks.size(); i++)
+	bool isError = false;
+	while (true)
 	{
-		if (info->mSock == gServerSocks[i]) {
-			auto data = DecodeLenAStr(local.GetData(info), 16);
-			for (auto k : data)
+		if (gServerSocks.size() == gLocalSocks.size()) {
+			for (size_t i = 0; i < gServerSocks.size(); i++)
 			{
-				Log_DEBUG("log.log", ("Local-Turner:" + k).c_str());
-				local.Send(gLocalSocks[i], k.c_str());
+				if (info->mSock == gServerSocks[i]) {
+					auto data = DecodeLenAStr(local.GetData(info), 16);
+					for (auto k : data)
+					{
+						Log_DEBUG("log.log", ("Local-Turner:" + k).c_str());
+						local.Send(gLocalSocks[i], k.c_str());
+					}
+					break;
+				}
+				else if (info->mSock == gLocalSocks[i]) {
+					Log_DEBUG("log.log", ("Local-Turner:" + EncodeLenAStr(local.GetData(info), 16)).c_str());
+					local.Send(gServerSocks[i], EncodeLenAStr(local.GetData(info), 16).c_str());
+					break;
+				}
+			}
+			if (isError == true) {
+				cout << "GOOD:Line 81,Repaired" << endl;
 			}
 			break;
 		}
-		else if (info->mSock == gLocalSocks[i]) {
-			Log_DEBUG("log.log", ("Local-Turner:" + EncodeLenAStr(local.GetData(info), 16)).c_str());
-			local.Send(gServerSocks[i], EncodeLenAStr(local.GetData(info), 16).c_str());
-			break;
+		else {
+			cout << "WARN:Line 81,Client!=Turner" << endl;
 		}
 	}
 }
 void local_left(PINFO info) {
-	for (size_t i = 0; i < gServerSocks.size(); i++)
+	bool isError = false;
+	while (true)
 	{
-		if (gServerSocks[i] == info->mSock) {
-			local.Close(info);
-			gServerSocks[i] = -1;
-			local.Close(gLocalSocks[i]);
-			gLocalSocks[i] = -1;
+		if (gServerSocks.size() == gLocalSocks.size()) {
+			for (size_t i = 0; i < gServerSocks.size(); i++)
+			{
+				if (gServerSocks[i] == info->mSock) {
+					local.Close(info);
+					gServerSocks[i] = -1;
+					local.Close(gLocalSocks[i]);
+					gLocalSocks[i] = -1;
+					break;
+				}
+				else if (gLocalSocks[i] == info->mSock) {
+					local.Close(info);
+					gLocalSocks[i] = -1;
+					local.Close(gServerSocks[i]);
+					gServerSocks[i] = -1;
+					break;
+				}
+			}
+			if (isError == true) {
+				cout << "GOOD:Line 113,Repaired" << endl;
+			}
 			break;
 		}
-		else if (gLocalSocks[i] == info->mSock) {
-			local.Close(info);
-			gLocalSocks[i] = -1;
-			local.Close(gServerSocks[i]);
-			gServerSocks[i] = -1;
-			break;
+		else {
+			cout << "WARN:Line 113,Client!=Turner" << endl;
 		}
+
 	}
 	cout << "A Local Client left" << endl;
 }

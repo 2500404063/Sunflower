@@ -118,7 +118,7 @@ private:
 #include <time.h>
 
 std::string EncodeLenAStr(const char* instr, short area = 8);
-std::vector<std::string> DecodeLenAStr(const char* instr, short area);
+std::vector<std::string> DecodeLenAStr(const char* instr, short area = 8);
 void Log_Out(const char* filename, std::string level, std::string content);
 void Log_DEBUG(const char* filename, const char* content);
 void Log_WARN(const char* filename, const char* content);
