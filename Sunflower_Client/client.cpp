@@ -81,6 +81,7 @@ void local_recv(PINFO info) {
 			break;
 		}
 		else {
+			isError = true;
 			cout << "WARN:Line 81,Client!=Turner" << endl;
 		}
 	}
@@ -113,6 +114,7 @@ void local_left(PINFO info) {
 			break;
 		}
 		else {
+			isError = true;
 			cout << "WARN:Line 113,Client!=Turner" << endl;
 		}
 

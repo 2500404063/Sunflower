@@ -41,6 +41,7 @@ void server_recv(PINFO info) {
 			break;
 		}
 		else {
+			isError = true;
 			cout << "WARN:Line 39,Client!=Turner" << endl;
 		}
 	}
@@ -66,6 +67,7 @@ void server_left(PINFO info) {
 			break;
 		}
 		else {
+			isError = true;
 			cout << "WARN:Line 60,Client!=Turner" << endl;
 		}
 	}
@@ -101,6 +103,7 @@ void turner_recv(PINFO info) {
 			break;
 		}
 		else {
+			isError = true;
 			cout << "WARN:Line 91,Client!=Turner" << endl;
 		}
 	}
@@ -130,6 +133,7 @@ void turner_left(PINFO info) {
 			break;
 		}
 		else {
+			isError = true;
 			cout << "WARN:Line 116,Client!=Turner" << endl;
 		}
 	}
